@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="auto">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestor de Proyectos – itadaki</title>
+  <link rel="icon" href="assets/favicon.jpg" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Critical CSS (inline) for fast first paint -->
+  <style>
+    :root {
+      --color-bg-light: hsl(210, 20%, 98%);
+      --color-bg-dark: hsl(210, 15%, 12%);
+      --color-primary: hsl(210, 80%, 55%);
+      --color-primary-dark: hsl(210, 80%, 45%);
+      --color-card-bg: rgba(255, 255, 255, 0.2);
+      --color-card-bg-dark: rgba(0, 0, 0, 0.3);
+      --color-text-light: hsl(210, 10%, 20%);
+      --color-text-dark: hsl(210, 10%, 90%);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --theme: dark;
+      }
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--color-bg-light);
+      color: var(--color-text-light);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body[data-theme='dark'] {
+      background: var(--color-bg-dark);
+      color: var(--color-text-dark);
+    }
+
+    header {
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    #project-list {
+      display: grid;
+      gap: 1rem;
+      padding: 1rem 2rem;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+
+    .project-card {
+      background: var(--color-card-bg);
+      backdrop-filter: blur(12px);
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+
+    body[data-theme='dark'] .project-card {
+      background: var(--color-card-bg-dark);
+    }
+
+    .project-card h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+    }
+
+    .milestones {
+      margin-top: 0.5rem;
+    }
+
+    .milestone {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.3rem;
+    }
+
+    .milestone input[type='date'] {
+      margin-left: auto;
+    }
+
+    .btn {
+      cursor: pointer;
+      border: none;
+      background: var(--color-primary);
+      color: #fff;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background: var(--color-primary-dark);
+    }
+
+    .fab {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 56px;
+      height: 56px;
+      background: var(--color-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 2rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--color-bg-light);
+      padding: 1.5rem;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 400px;
+    }
+
+    body[data-theme='dark'] .modal-content {
+      background: var(--color-bg-dark);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--color-primary);
+      color: #fff;
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+  </style>
+  <link rel="preload" href="style.css?v=1.2" as="style" onload="this.rel='stylesheet'" />
+  <noscript>
+    <link rel="stylesheet" href="style.css?v=1.2" />
+  </noscript>
+</head>
+
+<body>
+  <header>
+    <div>
+      <h1>Gestor de Proyectos</h1>
+      <div style="font-size: 0.8rem; opacity: 0.8; margin-top:0.2rem;">Pomodoro & Task Manager</div>
+    </div>
+    <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+      <input type="text" id="search" placeholder="Buscar proyecto..." />
+      <button class="btn" id="export-data" style="padding:0.4rem 0.8rem; font-size:0.8rem;">Exportar JSON</button>
+      <button class="btn" id="import-data" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:#777;">Importar
+        JSON</button>
+
+      <!-- Connection Status -->
+      <div id="connection-status" title="Desconectado (Click para reconectar)"
+        style="width:12px; height:12px; border-radius:50%; background:var(--color-danger); cursor:pointer; margin:0 0.5rem;">
+      </div>
+      <!-- Split Button for Quick Break -->
+      <div class="split-btn-container" style="position:relative; display:inline-flex;">
+        <button class="btn" id="quick-break-btn"
+          style="border-top-right-radius:0; border-bottom-right-radius:0; margin-right:1px;"
+          title="Iniciar Descanso Rápido">☕ Break</button>
+        <button class="btn" id="quick-break-toggle"
+          style="border-top-left-radius:0; border-bottom-left-radius:0; padding-left:0.4rem; padding-right:0.4rem;"
+          title="Configurar tiempo">▼</button>
+
+        <div id="quick-break-dropdown" class="dropdown-menu">
+          <label style="display:block; margin-bottom:0.5rem; font-size:0.8rem; color:var(--color-text-light);">Tiempo
+            (min):</label>
+          <input type="number" id="global-break-duration" value="5" min="1"
+            style="width:100%; padding:0.4rem; box-sizing:border-box; margin-bottom:0.5rem; border:1px solid #ccc; border-radius:4px;">
+          <button class="btn" id="save-break-config" style="width:100%; font-size:0.8rem;">Guardar</button>
+        </div>
+      </div>
+
+      <button class="btn" id="test-audio"
+        style="padding:0.4rem 0.8rem; font-size:0.8rem; background:var(--color-primary-dark);"
+        title="Probar Sonido">🔔</button>
+      <button class="btn" id="stats-btn" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:indigo;"
+        title="Estadísticas">📊</button>
+      <button class="btn" id="archive-btn" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:#555;"
+        title="Archivados">📦</button>
+      <input type="file" id="import-file" style="display:none" accept=".json" />
+    </div>
+  </header>
+
+  <!-- Timeline Bar -->
+  <div id="timeline-container">
+    <div class="timeline-summary">
+      <span id="timeline-worked">🍅 Trabajado: 0h 0m</span>
+      <span id="timeline-rested">☕ Descanso: 0h 0m</span>
+    </div>
+    <div class="timeline-bar-wrapper">
+      <div class="timeline-bar" id="timeline-bar">
+        <!-- Time segments will be rendered here by JS -->
+      </div>
+      <div class="timeline-labels">
+        <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <main id="project-list"></main>
+    <aside class="sidebar">
+      <h2>Historial</h2>
+      <div id="history-list"></div>
+      <button class="btn" onclick="clearHistory()" style="margin-top:1rem; width:100%; background:#777">Borrar
+        Historial</button>
+    </aside>
+  </div>
+  <div class="fab" id="add-project" title="Nuevo proyecto">+</div>
+
+  <!-- Modal Template -->
+  <div class="modal" id="project-modal">
+    <div class="modal-content">
+      <h2 id="modal-title">Nuevo proyecto</h2>
+      <label>Nombre:<br><input type="text" id="proj-name" /></label><br><br>
+      <label>Descripción:<br><textarea id="proj-desc" rows="3"></textarea></label><br><br>
+      <button class="btn" id="save-proj">Guardar</button>
+      <button class="btn" id="cancel-proj" style="background:#777;margin-left:0.5rem;">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- Archive Modal -->
+  <div class="modal" id="archive-modal">
+    <div class="modal-content">
+      <h2 style="margin-top:0;">Proyectos Archivados</h2>
+      <div id="archive-list" style="max-height: 300px; overflow-y: auto; margin:1rem 0;"></div>
+      <button class="btn" id="close-archive" style="width:100%; background:#777;">Cerrar</button>
+    </div>
+  </div>
+  </div>
+
+  <!-- Stats Modal -->
+  <div class="modal" id="stats-modal">
+    <div class="modal-content" style="max-width:600px;">
+      <h2 style="margin-top:0;">Estadísticas de Tiempo</h2>
+      <div style="position: relative; height:300px; width:100%;">
+        <canvas id="timeChart"></canvas>
+      </div>
+      <div style="margin-top:1rem; text-align:right; font-size:0.9rem; color:#888;">
+        Basado en sesiones completadas.
+      </div>
+      <button class="btn" id="close-stats" style="margin-top:1rem; width:100%; background:#777;">Cerrar</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js?v=1.2" defer></script>
+</body>
+
+</html>
