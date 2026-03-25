@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gestor de Proyectos – itadaki</title>
-  <link rel="icon" href="assets/favicon.jpg" />
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Critical CSS (inline) for fast first paint -->
   <style>
@@ -171,9 +171,13 @@
 
 <body>
   <header>
-    <div>
-      <h1>Gestor de Proyectos</h1>
-      <div style="font-size: 0.8rem; opacity: 0.8; margin-top:0.2rem;">Pomodoro & Task Manager</div>
+    <div style="display:flex; align-items:center; gap:0.8rem;">
+      <img src="assets/logo.svg" alt="Itadaki Pomodoro"
+        style="height: 50px; width: 50px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
+      <div>
+        <h1 style="font-weight:800; letter-spacing:-0.5px;">Itadaki Pomodoro</h1>
+        <div style="font-size: 0.75rem; opacity: 0.7; font-weight:500;">Gestor de Proyectos</div>
+      </div>
     </div>
     <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
       <input type="text" id="search" placeholder="Buscar proyecto..." />
@@ -208,6 +212,8 @@
         title="Probar Sonido">🔔</button>
       <button class="btn" id="stats-btn" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:indigo;"
         title="Estadísticas">📊</button>
+      <button class="btn" id="manual-entry-btn" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:#e67e22;"
+        title="Agregar tiempo manual">⏱️+</button>
       <button class="btn" id="archive-btn" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:#555;"
         title="Archivados">📦</button>
       <input type="file" id="import-file" style="display:none" accept=".json" />
@@ -252,6 +258,35 @@
     </div>
   </div>
 
+  <!-- Manual Entry Modal -->
+  <div class="modal" id="manual-modal">
+    <div class="modal-content">
+      <h2 style="margin-top:0;">Agregar Tiempo Manual</h2>
+
+      <label>Proyecto:</label>
+      <select id="manual-project-select"
+        style="width:100%; padding:0.5rem; margin-bottom:1rem; border-radius:4px; border:1px solid #ccc;"></select>
+
+      <label>Fecha y Hora:</label>
+      <input type="datetime-local" id="manual-datetime"
+        style="width:100%; padding:0.5rem; margin-bottom:1rem; border-radius:4px; border:1px solid #ccc;">
+
+      <label>Duración (minutos):</label>
+      <input type="number" id="manual-duration" min="1" value="25"
+        style="width:100%; padding:0.5rem; margin-bottom:1rem; border-radius:4px; border:1px solid #ccc;">
+
+      <label>Tipo:</label>
+      <div style="display:flex; gap:1rem; margin-bottom:1.5rem;">
+        <label style="font-weight:normal;"><input type="radio" name="manual-type" value="Pomodoro" checked> 🍅
+          Trabajo</label>
+        <label style="font-weight:normal;"><input type="radio" name="manual-type" value="Break"> ☕ Descanso</label>
+      </div>
+
+      <button class="btn" id="save-manual">Guardar</button>
+      <button class="btn" id="cancel-manual" style="background:#777; margin-left:0.5rem;">Cancelar</button>
+    </div>
+  </div>
+
   <!-- Archive Modal -->
   <div class="modal" id="archive-modal">
     <div class="modal-content">
@@ -266,11 +301,22 @@
   <div class="modal" id="stats-modal">
     <div class="modal-content" style="max-width:600px;">
       <h2 style="margin-top:0;">Estadísticas de Tiempo</h2>
+      <div
+        style="display:flex; gap:1rem; margin-bottom:1rem; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+        <h4 style="margin:0; opacity:0.7;">Filtros:</h4>
+        <div style="display:flex; gap:0.5rem;">
+          <input type="date" id="stats-start" title="Fecha Inicio"
+            style="padding:0.3rem; border:1px solid #ccc; border-radius:4px;">
+          <span style="align-self:center;">-</span>
+          <input type="date" id="stats-end" title="Fecha Fin"
+            style="padding:0.3rem; border:1px solid #ccc; border-radius:4px;">
+        </div>
+      </div>
       <div style="position: relative; height:300px; width:100%;">
         <canvas id="timeChart"></canvas>
       </div>
       <div style="margin-top:1rem; text-align:right; font-size:0.9rem; color:#888;">
-        Basado en sesiones completadas.
+        Basado en todo el tiempo registrado (Completado + Detenido).
       </div>
       <button class="btn" id="close-stats" style="margin-top:1rem; width:100%; background:#777;">Cerrar</button>
     </div>

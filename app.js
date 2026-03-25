@@ -38,6 +38,8 @@ const statsBtn = document.getElementById('stats-btn');
 const statsModal = document.getElementById('stats-modal');
 const closeStatsBtn = document.getElementById('close-stats');
 const timeChartCanvas = document.getElementById('timeChart');
+const statsStartInput = document.getElementById('stats-start');
+const statsEndInput = document.getElementById('stats-end');
 const connectionStatusEl = document.getElementById('connection-status');
 const timelineBarEl = document.getElementById('timeline-bar');
 const timelineWorkedEl = document.getElementById('timeline-worked');
@@ -46,6 +48,14 @@ const archiveBtn = document.getElementById('archive-btn');
 const archiveModal = document.getElementById('archive-modal');
 const archiveListEl = document.getElementById('archive-list');
 const closeArchiveBtn = document.getElementById('close-archive');
+// Manual Entry Elements
+const manualEntryBtn = document.getElementById('manual-entry-btn');
+const manualModal = document.getElementById('manual-modal');
+const manualProjectSelect = document.getElementById('manual-project-select');
+const manualDatetimeInput = document.getElementById('manual-datetime');
+const manualDurationInput = document.getElementById('manual-duration');
+const saveManualBtn = document.getElementById('save-manual');
+const cancelManualBtn = document.getElementById('cancel-manual');
 let timeChartInstance = null;
 const ONE_DAY_MS = 86400000;
 const RETENTION_DAYS = 90;
@@ -98,6 +108,10 @@ function setupEventListeners() {
         if (e.target === statsModal) statsModal.classList.remove('active');
     });
 
+    // Stats Date Filters
+    if (statsStartInput) statsStartInput.addEventListener('change', renderStats);
+    if (statsEndInput) statsEndInput.addEventListener('change', renderStats);
+
     // Connection Reconnect
     if (connectionStatusEl) connectionStatusEl.addEventListener('click', loadFromServer);
 
@@ -106,6 +120,14 @@ function setupEventListeners() {
     if (closeArchiveBtn) closeArchiveBtn.addEventListener('click', () => archiveModal.classList.remove('active'));
     if (archiveModal) archiveModal.addEventListener('click', (e) => {
         if (e.target === archiveModal) archiveModal.classList.remove('active');
+    });
+
+    // Manual Entry Listeners
+    if (manualEntryBtn) manualEntryBtn.addEventListener('click', openManualModal);
+    if (cancelManualBtn) cancelManualBtn.addEventListener('click', () => manualModal.classList.remove('active'));
+    if (saveManualBtn) saveManualBtn.addEventListener('click', saveManualEntry);
+    if (manualModal) manualModal.addEventListener('click', (e) => {
+        if (e.target === manualModal) manualModal.classList.remove('active');
     });
 }
 
@@ -118,24 +140,23 @@ async function loadFromServer() {
         const res = await fetch(DATA_URL);
         if (res.ok) {
             const data = await res.json();
-            if (data && data.projects) {
-                isServerAvailable = true;
-                projects = data.projects || [];
-                history = data.history || [];
-                globalBreakDuration = data.settings?.globalBreakDuration || 5;
-                if (globalBreakInput) globalBreakInput.value = globalBreakDuration;
+            // Server is available - even if data is empty (first run)
+            isServerAvailable = true;
+            projects = data.projects || [];
+            history = data.history || [];
+            globalBreakDuration = data.settings?.globalBreakDuration || 5;
+            if (globalBreakInput) globalBreakInput.value = globalBreakDuration;
 
-                // Reset runtime states
-                projects.forEach(p => {
-                    p.timerActive = false;
-                    if (p.timeLeft === undefined) p.timeLeft = p.timerDuration * 60;
-                });
+            // Reset runtime states
+            projects.forEach(p => {
+                p.timerActive = false;
+                if (p.timeLeft === undefined) p.timeLeft = p.timerDuration * 60;
+            });
 
-                pruneHistory(); // Retention Policy
-                console.log('Loaded from Server');
-                updateConnectionStatus(true);
-                return;
-            }
+            pruneHistory(); // Retention Policy
+            console.log('Loaded from Server');
+            updateConnectionStatus(true);
+            return;
         }
     } catch (e) {
         console.warn('Server unavailable, falling back to LocalStorage', e);
@@ -219,8 +240,7 @@ async function saveData() {
 
 // Wrapper aliases to maintain compatibility
 function saveProjects() { saveData(); }
-function saveHistory() { saveData(); }
-function saveSettings() { saveData(); }
+// saveHistory and saveSettings are defined below with additional UI logic
 
 function exportData() {
     const data = {
@@ -308,8 +328,8 @@ function saveSettings() {
     const val = parseInt(globalBreakInput.value);
     if (val > 0) {
         globalBreakDuration = val;
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify({ globalBreakDuration }));
         quickBreakDropdown.classList.remove('show');
+        saveData(); // Persist to server + localStorage
         showToast(`Tiempo de descanso guardado: ${val} min`);
     } else {
         alert('Ingrese un valor válido');
@@ -374,7 +394,7 @@ function loadHistoryLocal() {
 }
 
 function saveHistory() {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    saveData(); // Persist to server + localStorage
 }
 
 function addToHistory(projectName, durationMinutes, type = 'Pomodoro', status = 'completed', startTime = null) {
@@ -606,6 +626,80 @@ function renderArchiveList() {
     });
 }
 
+// --- Manual Entry Logic ---
+
+function openManualModal() {
+    manualModal.classList.add('active');
+
+    // Populate Projects
+    manualProjectSelect.innerHTML = '';
+    const activeProjects = projects.filter(p => !p.archived);
+    activeProjects.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        manualProjectSelect.appendChild(opt);
+    });
+
+    // Default to specific global break if exists, or first project
+
+    // Default Date: Now
+    // Format required for datetime-local: YYYY-MM-DDTHH:mm
+    const now = new Date();
+    // Adjust for timezone offset to show local time in input
+    const offsetMs = now.getTimezoneOffset() * 60000;
+    const localIso = new Date(now.getTime() - offsetMs).toISOString().slice(0, 16);
+    manualDatetimeInput.value = localIso;
+}
+
+function saveManualEntry() {
+    const projectId = manualProjectSelect.value;
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return alert('Seleccione un proyecto');
+
+    const duration = parseInt(manualDurationInput.value);
+    if (isNaN(duration) || duration < 1) return alert('Duración inválida');
+
+    const dateVal = manualDatetimeInput.value;
+    if (!dateVal) return alert('Fecha inválida');
+
+    const typeRadio = document.querySelector('input[name="manual-type"]:checked');
+    const type = typeRadio ? typeRadio.value : 'Pomodoro';
+
+    // Calculate timestamps
+    const startTimeDate = new Date(dateVal);
+    const endTimeDate = new Date(startTimeDate.getTime() + duration * 60000);
+
+    // Add to history
+    // We construct a custom entry to inject specific timestamps
+    const entry = {
+        id: Date.now().toString(),
+        projectName: project.name,
+        duration: duration,
+        type: type,
+        status: 'manual', // Distinguish manual entries? Or treat as completed? Let's say 'manual' or just 'completed'. 'completed' is safe for stats.
+        timestamp: endTimeDate.toISOString(), // Used for grouping date
+        startTime: startTimeDate.toISOString() // Used for timeline
+    };
+
+    // Special handling: addToHistory usually generates ID/Time. 
+    // We'll push directly or use a modified addToHistory.
+    // Let's modify addToHistory or just push and save.
+    // Existing addToHistory takes: (projectName, durationMinutes, type, status, startTime)
+    // But it sets timestamp to NOW. We need it to be custom.
+
+    // Let's push manually here to be safe and precise.
+    history.unshift(entry);
+    saveHistory();
+    renderHistory();
+    renderTimeline(); // Re-render logic handles sorting? 
+    // Timeline logic filters by day, so it should pick it up.
+    // History list sorts by date descending, so it should serve it correctly.
+
+    manualModal.classList.remove('active');
+    showToast('Tiempo manual agregado');
+}
+
 // --- Pomodoro Logic ---
 
 function formatTime(seconds) {
@@ -719,6 +813,7 @@ function stopTimer(id) {
     p.mode = 'work'; // Optional: Reset to work mode after stop? Or keep current? "Stopped" implies abandoning or finishing early. Let's keep current mode logic or reset. 
     // Existing logic toggles mode on finish. On stop, we probably stay or reset. Let's stay in current mode but reset timer.
 
+    playAlarm();
     showToast(`Tarea detenida. Tiempo: ${durationToLog} min.`);
     saveProjects();
     renderProjects(searchInput.value);
@@ -933,8 +1028,22 @@ function renderStats() {
     const activeProject = projects.find(p => p.timerActive);
     const activeName = activeProject ? activeProject.name : null;
 
+    // Filter Dates
+    const startVal = statsStartInput ? statsStartInput.value : '';
+    const endVal = statsEndInput ? statsEndInput.value : '';
+
     history.forEach(item => {
-        if (item.type === 'Pomodoro' && item.status === 'completed') {
+        // Date Check
+        const itemDate = new Date(item.timestamp);
+        const year = itemDate.getFullYear();
+        const month = String(itemDate.getMonth() + 1).padStart(2, '0');
+        const day = String(itemDate.getDate()).padStart(2, '0');
+        const itemYMD = `${year}-${month}-${day}`;
+
+        if (startVal && itemYMD < startVal) return;
+        if (endVal && itemYMD > endVal) return;
+
+        if (item.type === 'Pomodoro' && (item.status === 'completed' || item.status === 'stopped' || item.status === 'manual')) {
             if (!totals[item.projectName]) totals[item.projectName] = 0;
             totals[item.projectName] += item.duration;
         }
@@ -956,6 +1065,12 @@ function renderStats() {
     if (timeChartInstance) {
         timeChartInstance.destroy();
     }
+
+    // Dynamic Title
+    let titleText = 'Tiempo Total por Proyecto';
+    if (startVal && endVal) titleText += ` (${startVal} a ${endVal})`;
+    else if (startVal) titleText += ` (Desde ${startVal})`;
+    else if (endVal) titleText += ` (Hasta ${endVal})`;
 
     // 3. Render Chart
     timeChartInstance = new Chart(timeChartCanvas, {
@@ -981,7 +1096,7 @@ function renderStats() {
             },
             plugins: {
                 legend: { display: false },
-                title: { display: true, text: 'Tiempo Total por Proyecto' }
+                title: { display: true, text: titleText }
             }
         }
     });

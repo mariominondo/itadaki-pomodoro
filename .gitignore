@@ -1,0 +1,6 @@
+# Data file with real user sessions — never push
+pomodoro_data.json
+
+# Python
+__pycache__/
+*.pyc
