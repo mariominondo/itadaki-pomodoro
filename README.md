@@ -65,3 +65,47 @@ El indicador de conexión (círculo en el header) muestra:
 
 - Python 3.x (para el servidor)
 - Navegador moderno (Chrome, Firefox, Edge)
+
+## Contributing
+
+¡Contribuciones bienvenidas! Este proyecto es ideal para tu primer PR. 🎉
+
+### Setup
+
+```bash
+git clone https://github.com/mariominondo/itadaki-pomodoro.git
+cd itadaki-pomodoro
+python3 server.py
+# Abrir http://localhost:8000
+```
+
+### Cómo contribuir
+
+1. Haz fork del repositorio
+2. Crea tu rama: `git checkout -b feature/mi-mejora`
+3. Haz tus cambios y commitea: `git commit -m "feat: descripcion breve"`
+4. Push a tu fork: `git push origin feature/mi-mejora`
+5. Abre un Pull Request describiendo tus cambios
+
+### Ideas para tu primer PR
+
+| Dificultad | Idea |
+|------------|------|
+| 🟢 Fácil | Agregar temas de color (dark/light toggle manual) |
+| 🟢 Fácil | Mejorar mensajes de toast con iconos |
+| 🟢 Fácil | Agregar favicon.ico para compatibilidad con más navegadores |
+| 🟡 Media | Agregar sonidos personalizables para la alarma |
+| 🟡 Media | Drag & drop para reordenar proyectos |
+| 🟡 Media | Exportar estadísticas como imagen PNG |
+| 🔴 Avanzada | PWA con service worker para uso offline |
+| 🔴 Avanzada | Sincronización entre dispositivos via WebSocket |
+
+### Convenciones
+
+- **Commits**: Usar [Conventional Commits](https://www.conventionalcommits.org/) — `feat:`, `fix:`, `docs:`, `style:`
+- **Idioma del código**: Variables y comentarios en inglés, UI en español
+- **Sin dependencias extras**: El proyecto es vanilla HTML/CSS/JS, mantenerlo así
+
+## Licencia
+
+MIT
