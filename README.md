@@ -21,18 +21,32 @@ Gestor de proyectos con temporizador Pomodoro, persistencia en archivo JSON (NoS
 
 ## Inicio Rápido
 
-### Windows
-```
-start_pomodoro.bat
+### Docker (recomendado)
+```bash
+# Pre-condición: que exista pomodoro_data.json. Si es primera vez:
+[ -f pomodoro_data.json ] || cp pomodoro_data.example.json pomodoro_data.json
+
+docker compose up -d
+# Abrir http://localhost:8020
 ```
 
-### Linux / Mac
+El contenedor bindea **solo a 127.0.0.1** — no es accesible desde la LAN. Para parar: `docker compose down`.
+
+### Sin Docker (legacy / Windows)
+
 ```bash
+# Linux / Mac
 python3 server.py
 # Abrir http://localhost:8020
 ```
 
-> Puerto por defecto **8020** (Itadaki portfolio N=10). Override con `POMODORO_PORT=XXXX python3 server.py`.
+```cmd
+:: Windows
+start_pomodoro.bat
+```
+
+> Puerto **8020** (Itadaki portfolio N=10). Override con `POMODORO_PORT=XXXX python3 server.py`.
+> ⚠️ Sin Docker el server bindea a `0.0.0.0` (toda la LAN). Para uso personal usar Docker o exportar `POMODORO_BIND=127.0.0.1` (no implementado todavía).
 
 El servidor crea automáticamente `pomodoro_data.json` en la primera ejecución.
 
@@ -44,8 +58,11 @@ itadaki_Pomodoro/
 ├── app.js                        # Lógica del cliente
 ├── style.css                     # Estilos
 ├── server.py                     # Servidor HTTP + persistencia JSON
-├── start_pomodoro.bat            # Launcher (Windows)
-├── pomodoro_data.json            # Datos persistidos (gitignored)
+├── Dockerfile                    # Imagen python:3.13-alpine, non-root
+├── docker-compose.yml            # Bindea host 127.0.0.1:8020 → container 8000
+├── .dockerignore                 # Excluye .git, datos reales, etc.
+├── start_pomodoro.bat            # Launcher legacy (Windows, sin docker)
+├── pomodoro_data.json            # Datos persistidos (gitignored, bind-mounted)
 ├── pomodoro_data.example.json    # Plantilla de referencia
 └── assets/
     ├── logo.svg
