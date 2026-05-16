@@ -4,7 +4,7 @@ import json
 import os
 import sys
 
-PORT = 8000
+PORT = int(os.environ.get('POMODORO_PORT', 8020))
 
 # Ensure CWD is the script's directory (so pomodoro_data.json lives next to server.py)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
