@@ -1,0 +1,14 @@
+.git
+.gitignore
+.dockerignore
+Dockerfile
+docker-compose.yml
+README.md
+start_pomodoro.bat
+pomodoro_data.example.json
+pomodoro_data.json
+__pycache__
+*.pyc
+.DS_Store
+*.swp
+*.swo

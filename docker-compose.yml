@@ -1,0 +1,17 @@
+services:
+  pomodoro:
+    build: .
+    image: itadaki_pomodoro:local
+    container_name: itadaki_pomodoro
+    environment:
+      POMODORO_PORT: 8000
+    ports:
+      # Host bind a loopback only — el contenedor NO es accesible desde la LAN.
+      # Convención portafolio: N=10 → host 8020 / container 8000.
+      - "127.0.0.1:8020:8000"
+    volumes:
+      # Bind mount del archivo de datos para que sobreviva a rebuilds.
+      # PRE-CONDICIÓN: el archivo debe existir en el host antes de `up`
+      # (server.py lo crea con defaults la primera vez si NO hay docker).
+      - ./pomodoro_data.json:/app/pomodoro_data.json
+    restart: unless-stopped
