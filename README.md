@@ -29,8 +29,10 @@ start_pomodoro.bat
 ### Linux / Mac
 ```bash
 python3 server.py
-# Abrir http://localhost:8000
+# Abrir http://localhost:8020
 ```
+
+> Puerto por defecto **8020** (Itadaki portfolio N=10). Override con `POMODORO_PORT=XXXX python3 server.py`.
 
 El servidor crea automáticamente `pomodoro_data.json` en la primera ejecución.
 
@@ -76,7 +78,7 @@ El indicador de conexión (círculo en el header) muestra:
 git clone https://github.com/mariominondo/itadaki-pomodoro.git
 cd itadaki-pomodoro
 python3 server.py
-# Abrir http://localhost:8000
+# Abrir http://localhost:8020
 ```
 
 ### Cómo contribuir
