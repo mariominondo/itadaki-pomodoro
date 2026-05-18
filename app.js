@@ -129,6 +129,52 @@ function setupEventListeners() {
     if (manualModal) manualModal.addEventListener('click', (e) => {
         if (e.target === manualModal) manualModal.classList.remove('active');
     });
+
+    const clearHistoryBtn = document.getElementById('clear-history-btn');
+    if (clearHistoryBtn) clearHistoryBtn.addEventListener('click', clearHistory);
+
+    setupDelegatedHandlers();
+}
+
+// Delegación de eventos sobre listas dinámicas. Evita interpolar IDs en
+// `onclick=...` (vector M-1/M-2 de la auditoría red-hat): los IDs viajan
+// por `data-id` en el DOM y nunca se concatenan a código.
+function setupDelegatedHandlers() {
+    if (projectListEl) {
+        projectListEl.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+            const card = btn.closest('.project-card');
+            if (!card) return;
+            const id = card.dataset.id;
+            switch (btn.dataset.action) {
+                case 'edit':        openModalById(id); break;
+                case 'archive':     archiveProject(id); break;
+                case 'switchMode':  switchMode(id, btn.dataset.mode); break;
+                case 'toggleTimer': toggleTimer(id); break;
+                case 'stopTimer':   stopTimer(id); break;
+                case 'resetTimer':  resetTimer(id); break;
+            }
+        });
+        projectListEl.addEventListener('change', (e) => {
+            const input = e.target.closest('[data-action="setDuration"]');
+            if (!input) return;
+            const card = input.closest('.project-card');
+            if (!card) return;
+            setDuration(card.dataset.id, input.value, input.dataset.mode);
+        });
+    }
+
+    if (archiveListEl) {
+        archiveListEl.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+            const id = btn.dataset.id;
+            if (!id) return;
+            if (btn.dataset.action === 'restore') restoreProject(id);
+            else if (btn.dataset.action === 'deletePermanent') deletePermanent(id);
+        });
+    }
 }
 
 // --- Data Persistence ---
@@ -259,6 +305,32 @@ function exportData() {
     showToast('Datos exportados existosamente');
 }
 
+// Schema validators — backup importado puede venir de cualquier lado
+// (WhatsApp, email, sitio web). M-3 de la auditoría red-hat: blindar
+// importData contra IDs maliciosos que después se interpolen en el DOM.
+const PROJECT_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+const MAX_PROJECTS = 1000;
+const MAX_HISTORY = 100000;
+const MAX_NAME_LEN = 200;
+const MAX_DESC_LEN = 2000;
+
+function isValidProject(p) {
+    if (!p || typeof p !== 'object') return false;
+    const id = (typeof p.id === 'number') ? String(p.id) : p.id;
+    if (typeof id !== 'string' || !PROJECT_ID_RE.test(id)) return false;
+    if (typeof p.name !== 'string' || p.name.length === 0 || p.name.length > MAX_NAME_LEN) return false;
+    if (p.description !== undefined && p.description !== null
+        && (typeof p.description !== 'string' || p.description.length > MAX_DESC_LEN)) return false;
+    return true;
+}
+
+function isValidHistoryEntry(h) {
+    if (!h || typeof h !== 'object') return false;
+    if (typeof h.projectName !== 'string' || h.projectName.length > MAX_NAME_LEN) return false;
+    if (typeof h.timestamp !== 'number' && typeof h.timestamp !== 'string') return false;
+    return true;
+}
+
 function importData(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -267,20 +339,33 @@ function importData(e) {
     reader.onload = (event) => {
         try {
             const imported = JSON.parse(event.target.result);
-            if (Array.isArray(imported)) {
-                loadImportedProjects(imported);
-                showToast('Proyectos importados (formato antiguo)');
-            } else if (imported.projects) {
-                loadImportedProjects(imported.projects);
-                if (imported.history && Array.isArray(imported.history)) {
-                    history = imported.history;
-                    saveHistory();
-                    renderHistory();
-                }
-                showToast('Datos completos importados correctamente');
-            } else {
+            const rawProjects = Array.isArray(imported)
+                ? imported
+                : (imported && Array.isArray(imported.projects) ? imported.projects : null);
+
+            if (!rawProjects) {
                 alert('Formato JSON no reconocido.');
+                return;
             }
+            if (rawProjects.length > MAX_PROJECTS) {
+                alert(`El archivo contiene demasiados proyectos (max ${MAX_PROJECTS}).`);
+                return;
+            }
+            const validProjects = rawProjects
+                .filter(isValidProject)
+                .map(p => ({ ...p, id: String(p.id) }));
+            const skipped = rawProjects.length - validProjects.length;
+
+            loadImportedProjects(validProjects);
+
+            if (imported && Array.isArray(imported.history)) {
+                history = imported.history.filter(isValidHistoryEntry).slice(0, MAX_HISTORY);
+                saveHistory();
+                renderHistory();
+            }
+
+            const base = Array.isArray(imported) ? 'Proyectos importados (formato antiguo)' : 'Datos completos importados';
+            showToast(skipped > 0 ? `${base} — ${skipped} ignorados por formato inválido` : base);
         } catch (err) {
             alert('Error al leer el archivo JSON.');
             console.error(err);
@@ -618,8 +703,8 @@ function renderArchiveList() {
                 <div style="font-size:0.8rem; color:#666;">${escapeHtml(p.description || '')}</div>
             </div>
             <div style="display:flex; gap:0.5rem;">
-                <button class="btn" style="background:var(--color-success); font-size:0.8rem; padding:0.3rem 0.6rem;" onclick="restoreProject('${p.id}')" title="Restaurar">♻️</button>
-                <button class="btn" style="background:var(--color-danger); font-size:0.8rem; padding:0.3rem 0.6rem;" onclick="deletePermanent('${p.id}')" title="Eliminar Definitivamente">❌</button>
+                <button class="btn" style="background:var(--color-success); font-size:0.8rem; padding:0.3rem 0.6rem;" data-action="restore" data-id="${escapeAttr(p.id)}" title="Restaurar">♻️</button>
+                <button class="btn" style="background:var(--color-danger); font-size:0.8rem; padding:0.3rem 0.6rem;" data-action="deletePermanent" data-id="${escapeAttr(p.id)}" title="Eliminar Definitivamente">❌</button>
             </div>
         `;
         archiveListEl.appendChild(item);
@@ -966,35 +1051,35 @@ function renderProjects(filter = '') {
             <div class="card-header">
                 <h2>${escapeHtml(p.name)}</h2>
                 <div>
-                   <button class="btn-icon" onclick="openModal({id:'${p.id}', name:'${escapeStr(p.name)}', description:'${escapeStr(p.description)}'})" title="Editar">✏️</button>
-                   <button class="btn-icon" onclick="archiveProject('${p.id}')" title="Archivar">📦</button>
+                   <button class="btn-icon" data-action="edit" title="Editar">✏️</button>
+                   <button class="btn-icon" data-action="archive" title="Archivar">📦</button>
                 </div>
             </div>
             <p class="card-desc">${escapeHtml(p.description || '')}</p>
-            
+
             <div class="timer-section">
                 <!-- Mode Switcher -->
                 <div style="display:flex; justify-content:center; gap:0.5rem; margin-bottom:0.5rem; font-size:0.8rem;">
-                    <button onclick="switchMode('${p.id}', 'work')" style="background:${isWork ? '#ddd' : 'transparent'}; border:1px solid #ddd; padding:2px 8px; border-radius:10px; cursor:pointer; font-weight:${isWork ? 'bold' : 'normal'}">🍅 Work</button>
-                    <button onclick="switchMode('${p.id}', 'break')" style="background:${!isWork ? '#ddd' : 'transparent'}; border:1px solid #ddd; padding:2px 8px; border-radius:10px; cursor:pointer; font-weight:${!isWork ? 'bold' : 'normal'}">☕ Break</button>
+                    <button data-action="switchMode" data-mode="work" style="background:${isWork ? '#ddd' : 'transparent'}; border:1px solid #ddd; padding:2px 8px; border-radius:10px; cursor:pointer; font-weight:${isWork ? 'bold' : 'normal'}">🍅 Work</button>
+                    <button data-action="switchMode" data-mode="break" style="background:${!isWork ? '#ddd' : 'transparent'}; border:1px solid #ddd; padding:2px 8px; border-radius:10px; cursor:pointer; font-weight:${!isWork ? 'bold' : 'normal'}">☕ Break</button>
                 </div>
 
                 <div class="timer-display" style="color:${displayColor}">${formatTime(p.timeLeft)}</div>
-                
+
                 <div class="timer-controls">
-                    <button class="btn ${btnClass}" onclick="toggleTimer('${p.id}')">${btnText}</button>
-                    ${isRunning ? `<button class="btn btn-stop" onclick="stopTimer('${p.id}')" title="Terminar y guardar tiempo real">⏹ Stop</button>` : ''}
-                    <button class="btn" onclick="resetTimer('${p.id}')" style="background:#777">Reset</button>
+                    <button class="btn ${btnClass}" data-action="toggleTimer">${btnText}</button>
+                    ${isRunning ? `<button class="btn btn-stop" data-action="stopTimer" title="Terminar y guardar tiempo real">⏹ Stop</button>` : ''}
+                    <button class="btn" data-action="resetTimer" style="background:#777">Reset</button>
                 </div>
-                
+
                 <div style="display:flex; gap:1rem; justify-content:center; margin-top:0.8rem; border-top:1px solid rgba(0,0,0,0.05); padding-top:0.5rem">
                     <div class="input-time-group">
                         <label>Trabajo:</label>
-                        <input type="number" value="${p.timerDuration}" min="1" onchange="setDuration('${p.id}', this.value, 'work')" ${isRunning ? 'disabled' : ''}>
+                        <input type="number" value="${p.timerDuration}" min="1" data-action="setDuration" data-mode="work" ${isRunning ? 'disabled' : ''}>
                     </div>
                      <div class="input-time-group">
                         <label>Desc.:</label>
-                        <input type="number" value="${p.breakDuration}" min="1" onchange="setDuration('${p.id}', this.value, 'break')" ${isRunning ? 'disabled' : ''}>
+                        <input type="number" value="${p.breakDuration}" min="1" data-action="setDuration" data-mode="break" ${isRunning ? 'disabled' : ''}>
                     </div>
                 </div>
             </div>
@@ -1004,7 +1089,8 @@ function renderProjects(filter = '') {
 }
 
 function escapeHtml(text) { if (!text) return ''; return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
-function escapeStr(text) { if (!text) return ''; return text.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+function escapeAttr(value) { return String(value ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function openModalById(id) { const p = projects.find(x => x.id === id); if (p) openModal(p); }
 function showToast(msg) {
     const toast = document.getElementById('toast');
     toast.textContent = msg;
