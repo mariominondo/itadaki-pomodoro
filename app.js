@@ -324,10 +324,16 @@ function isValidProject(p) {
     return true;
 }
 
+const HISTORY_STATUS_ALLOWED = new Set(['started', 'paused', 'completed', 'stopped']);
+const HISTORY_TYPE_ALLOWED = new Set(['Pomodoro', 'Break']);
+
 function isValidHistoryEntry(h) {
     if (!h || typeof h !== 'object') return false;
     if (typeof h.projectName !== 'string' || h.projectName.length > MAX_NAME_LEN) return false;
     if (typeof h.timestamp !== 'number' && typeof h.timestamp !== 'string') return false;
+    if (h.status !== undefined && !HISTORY_STATUS_ALLOWED.has(h.status)) return false;
+    if (h.type !== undefined && !HISTORY_TYPE_ALLOWED.has(h.type)) return false;
+    if (h.duration !== undefined && (!Number.isFinite(+h.duration) || +h.duration < 0 || +h.duration > 100000)) return false;
     return true;
 }
 
@@ -553,7 +559,9 @@ function renderHistory() {
             const el = document.createElement('div');
             el.className = 'history-item';
 
-            // Visual distinction for Started vs Completed vs Paused
+            // Visual distinction for Started vs Completed vs Paused.
+            // `duration` viene del JSON persistido y puede ser hostil tras un
+            // import — coerción a entero defensiva antes de interpolar.
             let actionText, color, icon;
             if (item.status === 'started') {
                 actionText = 'Iniciado';
@@ -566,7 +574,8 @@ function renderHistory() {
             } else {
                 actionText = 'Completado';
                 color = 'var(--color-primary)'; // Done = Blue
-                icon = '✔ ' + item.duration + ' min';
+                const safeDuration = Number.isFinite(+item.duration) ? Math.trunc(+item.duration) : 0;
+                icon = '✔ ' + safeDuration + ' min';
             }
 
             el.innerHTML = `
