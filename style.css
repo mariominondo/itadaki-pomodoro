@@ -17,6 +17,10 @@
     --color-input-bg-dark: hsl(210, 15%, 20%);
 }
 
+html {
+    font-size: 18px;
+}
+
 body {
     margin: 0;
     font-family: 'Inter', system-ui, sans-serif;
