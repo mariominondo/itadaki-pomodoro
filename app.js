@@ -56,12 +56,17 @@ const manualDatetimeInput = document.getElementById('manual-datetime');
 const manualDurationInput = document.getElementById('manual-duration');
 const saveManualBtn = document.getElementById('save-manual');
 const cancelManualBtn = document.getElementById('cancel-manual');
+// Theme toggle
+const themeToggleBtn = document.getElementById('theme-toggle');
+const themeIconSun = document.getElementById('theme-icon-sun');
+const themeIconMoon = document.getElementById('theme-icon-moon');
 let timeChartInstance = null;
 const ONE_DAY_MS = 86400000;
 const RETENTION_DAYS = 90;
 
 // Initialization
 document.addEventListener('DOMContentLoaded', async () => {
+    applyTheme(getStoredTheme());
     await loadFromServer();
     renderProjects();
     renderHistory();
@@ -132,6 +137,9 @@ function setupEventListeners() {
 
     const clearHistoryBtn = document.getElementById('clear-history-btn');
     if (clearHistoryBtn) clearHistoryBtn.addEventListener('click', clearHistory);
+
+    // Theme Toggle
+    if (themeToggleBtn) themeToggleBtn.addEventListener('click', toggleTheme);
 
     setupDelegatedHandlers();
 }
@@ -398,7 +406,48 @@ function loadImportedProjects(importedProjects) {
     renderProjects();
 }
 
-// --- Settings & Global Break ---
+// --- Theme Management ---
+
+function applyTheme(theme) {
+    const t = (theme === 'light') ? 'light' : 'dark';
+    document.body.dataset.theme = t;
+    if (themeIconSun && themeIconMoon) {
+        themeIconSun.style.display = (t === 'dark') ? 'inline-block' : 'none';
+        themeIconMoon.style.display = (t === 'light') ? 'inline-block' : 'none';
+    }
+    if (themeToggleBtn) {
+        themeToggleBtn.setAttribute('aria-pressed', t === 'dark' ? 'true' : 'false');
+    }
+    // Re-render chart if visible so its labels/grid follow the new theme
+    if (timeChartInstance && statsModal && statsModal.classList.contains('active')) {
+        renderStats();
+    }
+}
+
+function getStoredTheme() {
+    try {
+        const data = localStorage.getItem(SETTINGS_KEY);
+        if (!data) return 'dark';
+        const parsed = JSON.parse(data);
+        return (parsed.theme === 'light' || parsed.theme === 'dark') ? parsed.theme : 'dark';
+    } catch (e) { return 'dark'; }
+}
+
+function persistTheme(theme) {
+    try {
+        const data = localStorage.getItem(SETTINGS_KEY);
+        const parsed = data ? JSON.parse(data) : {};
+        parsed.theme = theme;
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(parsed));
+    } catch (e) { console.error('persistTheme failed', e); }
+}
+
+function toggleTheme() {
+    const current = document.body.dataset.theme === 'dark' ? 'dark' : 'light';
+    const next = current === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    persistTheme(next);
+}
 
 // --- Settings & Global Break ---
 
@@ -1167,6 +1216,11 @@ function renderStats() {
     else if (startVal) titleText += ` (Desde ${startVal})`;
     else if (endVal) titleText += ` (Hasta ${endVal})`;
 
+    // Theme-aware chart colors (labels/grid must contrast with card background)
+    const isDark = document.body.dataset.theme === 'dark';
+    const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+    const textColor = isDark ? 'hsl(210, 10%, 90%)' : 'hsl(210, 10%, 20%)';
+
     // 3. Render Chart
     timeChartInstance = new Chart(timeChartCanvas, {
         type: 'bar',
@@ -1186,12 +1240,18 @@ function renderStats() {
             scales: {
                 y: {
                     beginAtZero: true,
-                    title: { display: true, text: 'Minutos' }
+                    title: { display: true, text: 'Minutos', color: textColor },
+                    ticks: { color: textColor },
+                    grid: { color: gridColor }
+                },
+                x: {
+                    ticks: { color: textColor },
+                    grid: { color: gridColor }
                 }
             },
             plugins: {
                 legend: { display: false },
-                title: { display: true, text: titleText }
+                title: { display: true, text: titleText, color: textColor }
             }
         }
     });
