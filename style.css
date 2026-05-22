@@ -113,12 +113,12 @@ body[data-theme='dark'] .project-card {
 
 .card-header h2 {
     margin: 0;
-    font-size: 1.25rem;
+    font-size: 1.5rem;
     word-break: break-word;
 }
 
 .card-desc {
-    font-size: 0.9rem;
+    font-size: 1.05rem;
     color: #666;
     flex-grow: 1;
     white-space: pre-wrap;
@@ -137,7 +137,7 @@ body[data-theme='dark'] .card-desc {
 }
 
 .timer-display {
-    font-size: 2.5rem;
+    font-size: 3rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     margin: 0.5rem 0;
@@ -157,16 +157,18 @@ body[data-theme='dark'] .card-desc {
     gap: 0.5rem;
     justify-content: center;
     margin-bottom: 0.5rem;
+    font-size: 0.95rem;
 }
 
 .input-time-group input {
-    width: 60px;
-    padding: 0.3rem;
+    width: 70px;
+    padding: 0.35rem;
     border: 1px solid var(--color-border-light);
     background: var(--color-input-bg-light);
     color: inherit;
     border-radius: 4px;
     text-align: center;
+    font-size: 0.95rem;
 }
 
 body[data-theme='dark'] .input-time-group input {
@@ -181,7 +183,7 @@ body[data-theme='dark'] .input-time-group input {
     color: #fff;
     padding: 0.5rem 1rem;
     border-radius: 6px;
-    font-size: 0.9rem;
+    font-size: 1rem;
     transition: background 0.2s;
 }
 
@@ -353,7 +355,7 @@ body[data-theme='dark'] .sidebar {
 }
 
 .sidebar h2 {
-    font-size: 1.2rem;
+    font-size: 1.5rem;
     margin-top: 0;
     border-bottom: 2px solid var(--color-primary);
     padding-bottom: 0.5rem;
@@ -365,7 +367,7 @@ body[data-theme='dark'] .sidebar {
     flex-direction: column;
     padding: 0.8rem;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    font-size: 0.9rem;
+    font-size: 1.05rem;
 }
 
 body[data-theme='dark'] .history-item {
@@ -380,7 +382,7 @@ body[data-theme='dark'] .history-item {
     display: flex;
     justify-content: space-between;
     color: var(--color-text-muted-light);
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     margin-bottom: 0.2rem;
 }
 
