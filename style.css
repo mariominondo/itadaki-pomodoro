@@ -65,9 +65,16 @@ h1 {
 #search {
     padding: 0.5rem 1rem;
     border-radius: 20px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--color-border-light);
+    background: var(--color-input-bg-light);
+    color: inherit;
     width: 100%;
     max-width: 300px;
+}
+
+body[data-theme='dark'] #search {
+    border-color: var(--color-border-dark);
+    background: var(--color-input-bg-dark);
 }
 
 #project-list {
@@ -155,9 +162,16 @@ body[data-theme='dark'] .card-desc {
 .input-time-group input {
     width: 60px;
     padding: 0.3rem;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-border-light);
+    background: var(--color-input-bg-light);
+    color: inherit;
     border-radius: 4px;
     text-align: center;
+}
+
+body[data-theme='dark'] .input-time-group input {
+    border-color: var(--color-border-dark);
+    background: var(--color-input-bg-dark);
 }
 
 .btn {
@@ -278,11 +292,16 @@ body[data-theme='dark'] .modal-content {
 .form-group textarea {
     width: 100%;
     padding: 0.6rem;
-    border: 1px solid #ccc;
+    border: 1px solid var(--color-border-light);
     border-radius: 6px;
     background: transparent;
     color: inherit;
     font-family: inherit;
+}
+
+body[data-theme='dark'] .form-group input,
+body[data-theme='dark'] .form-group textarea {
+    border-color: var(--color-border-dark);
 }
 
 .modal-actions {
@@ -362,9 +381,13 @@ body[data-theme='dark'] .history-item {
 .history-header {
     display: flex;
     justify-content: space-between;
-    color: #888;
+    color: var(--color-text-muted-light);
     font-size: 0.8rem;
     margin-bottom: 0.2rem;
+}
+
+body[data-theme='dark'] .history-header {
+    color: var(--color-text-muted-dark);
 }
 
 .history-task {
@@ -489,8 +512,12 @@ body[data-theme='dark'] .timeline-bar {
     display: flex;
     justify-content: space-between;
     font-size: 0.7rem;
-    color: #888;
+    color: var(--color-text-muted-light);
     margin-top: 0.2rem;
+}
+
+body[data-theme='dark'] .timeline-labels {
+    color: var(--color-text-muted-dark);
 }
 
 /* ===== Stop Button ===== */
