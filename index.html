@@ -205,6 +205,23 @@
       <div id="connection-status" title="Desconectado (Click para reconectar)"
         style="width:12px; height:12px; border-radius:50%; background:var(--color-danger); cursor:pointer; margin:0 0.5rem;">
       </div>
+
+      <!-- Theme Toggle -->
+      <button class="btn btn-icon" id="theme-toggle"
+        style="padding:0.4rem; background:transparent; line-height:0;"
+        title="Alternar tema claro/oscuro" aria-label="Alternar tema claro u oscuro" aria-pressed="true">
+        <svg id="theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4" />
+          <path
+            d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+        </svg>
+        <svg id="theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      </button>
+
       <!-- Split Button for Quick Break -->
       <div class="split-btn-container" style="position:relative; display:inline-flex;">
         <button class="btn" id="quick-break-btn"
