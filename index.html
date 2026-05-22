@@ -7,27 +7,6 @@
   <meta name="color-scheme" content="dark light" />
   <title>Gestor de Proyectos – itadaki</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-  <script>
-    (function () {
-      try {
-        var saved = localStorage.getItem('itadaki_pomodoro_settings');
-        var theme = 'dark';
-        if (saved) {
-          var parsed = JSON.parse(saved);
-          if (parsed && (parsed.theme === 'light' || parsed.theme === 'dark')) {
-            theme = parsed.theme;
-          }
-        }
-        document.documentElement.dataset.bootTheme = theme;
-        document.addEventListener('readystatechange', function applyOnce() {
-          if (document.body) {
-            document.body.dataset.theme = theme;
-            document.removeEventListener('readystatechange', applyOnce);
-          }
-        });
-      } catch (e) { /* fallthrough -> dark */ }
-    })();
-  </script>
   <script src="assets/vendor/chart.umd.js"></script>
   <!-- Critical CSS (inline) for fast first paint -->
   <style>

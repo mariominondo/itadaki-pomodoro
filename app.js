@@ -3,6 +3,23 @@
  * Persists data to localStorage and allows JSON Export/Import.
  */
 
+// Anti-FOUC theme bootstrap. Runs as soon as app.js is evaluated. Because
+// the <script> uses `defer`, the parser has already produced <body> when we
+// get here, so we can sync the body data-theme to whatever the user picked
+// last time before the rest of the app initializes. The body already starts
+// with data-theme="dark" literal, so users who never toggled (or are on
+// their first visit) see no flash either way.
+(function bootTheme() {
+    try {
+        var saved = localStorage.getItem('itadaki_pomodoro_settings');
+        if (!saved) return;
+        var parsed = JSON.parse(saved);
+        if (parsed && (parsed.theme === 'light' || parsed.theme === 'dark')) {
+            document.body.dataset.theme = parsed.theme;
+        }
+    } catch (e) { /* fall back to the literal data-theme="dark" already on <body> */ }
+})();
+
 // State
 let projects = [];
 let history = []; // { id, projectName, timestamp, duration, type }
